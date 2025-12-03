@@ -1,0 +1,32 @@
+name: Lovable Manual Sync
+on:
+  workflow_dispatch:
+    inputs:
+      target_repos:
+        description: 'Target Repositories'
+        required: true
+      auth_token:
+        description: 'PAT'
+        required: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Push to Targets
+        env:
+          GH_TOKEN: ${{ inputs.auth_token }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          IFS=',' read -ra REPOS <<< "${{ inputs.target_repos }}"
+          for repo in "${REPOS[@]}"; do
+            echo "Syncing to $repo..."
+            git push --mirror "https://x-access-token:$GH_TOKEN@github.com/$OWNER/$repo.git"
+          done
